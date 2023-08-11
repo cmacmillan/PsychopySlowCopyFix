@@ -270,21 +270,20 @@ class Color:
         self._requestedSpace = None
 
         self.set(color=color, space=space)
-    
-    perform_validation = True # Static flag
+
     def validate(self, color, space=None):
         """
         Check that a color value is valid in the given space, or all spaces if space==None.
         """
-        if (not Color.perform_validation):
-            return color, space
-
         # Treat None as a named color
         if color is None:
             color = "none"
         if isinstance(color, str):
             if color == "":
                 color = "none"
+            # If None, skip the rest of validation - we know it's transparent
+            if color == "none":
+                return "none", "named"
         # Handle everything as an array
         if not isinstance(color, np.ndarray):
             color = np.array(color)
@@ -491,17 +490,11 @@ class Color:
         return self.__deepcopy__()
 
     def __deepcopy__(self):
-        # optimization to disable validation while copying
-        # since it isn't necessary and is very slow
-        original_perform_validation = Color.perform_validation
-        Color.perform_validation = False
-
-        dupe = self.__class__(
-            self._requested, self._requestedSpace, self.contrast)
-        dupe.rgba = self.rgba
+        dupe = self.__class__(None, contrast=self.contrast)
+        dupe._requested = self._requested
+        dupe._requestedSpace = self._requestedSpace
         dupe.valid = self.valid
-
-        Color.perform_validation = original_perform_validation
+        dupe._cache = self._cache
 
         return dupe
 
